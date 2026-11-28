@@ -845,11 +845,20 @@ body:not(.pc) #restartBtn{display:none}
 <script>
 (()=>{
 'use strict';
-const GAME_VERSION='2026-11-28.0';
+const GAME_VERSION='2026-11-28.1';
 // 公開網址判斷：只有在 github.io 上、而且網址沒有 ?dev 時，才藏起測試用的按鈕
 const PUBLIC_SITE=/github\.io$/i.test(location.hostname)&&!/[?&]dev\b/i.test(location.search);
 if(PUBLIC_SITE)document.documentElement.classList.add('pub');
 const CHANGELOG=[
+  ['2026-11-28.1','第九章打磨期第 1 次（星期六晚上輕量版）：修正技能不用打 Boss 就能進化（待辦 R1）、光屑離太遠不會飛過來（待辦 Q1）',[
+    '修正（待辦 R1，啊一 回報）：第三章找師父學會燈火技藝時，原本把「之前已經打倒的熄燈者、映照者」也算成燈火機會，所以一學會技能就能直接進化。現在燈火機會只算學會燈火技藝之後實際打倒的 Boss（第一個是第三章的「提燈的倒影」）',
+    '待辦 R1：轉職（換派系）之後，燈火機會的計算照樣正確，不會因為轉職又多出機會',
+    '待辦 R1：已經用這個漏洞多進化過的舊存檔，進化過的招式不會被退回；之後的燈火機會從正確的數字繼續算（多用掉的會先抵掉，所以可能要再打倒幾個 Boss 才會有新的機會）',
+    '待辦 R1：沒有燈火機會時，技能樹最下面的「進化」按鈕會灰掉，並寫「打倒 Boss 可獲得燈火機會」',
+    '待辦 R1：封面「捷徑」跳章測試仍然照舊給測試用的燈火機會（只存在存檔 3），不影響一般存檔',
+    '修正（待辦 Q1，啊一 回報）：打倒怪物掉的光屑，原本主角離開約 4 格以外就不會飛過來，會一直留在原地然後消失。現在不管主角離多遠，光屑都會飛向主角，飛得越久越快，飛的時候會穿過牆和地形，不會卡住',
+    '待辦 Q1：還沒吸到的光屑，在換房間時會直接算進身上的光屑，不會不見（倒下時半空中的光屑照舊會散掉）'
+  ]],
   ['2026-11-28.0','第九章完成（部分⑨：接上正式流程）——現在可以從第一章一路玩到第九章打倒雪怪',[
     '第九章「暴風雪的山路」這次完成最後的第 9 部分（共 9 部分）：第九章正式接在第八章後面，不用再從「捷徑」進入；從第一章開始玩，可以一路玩到山頂的雪怪被打倒、出現「第九章 完」',
     '第八章的結尾改成承接第九章的演出：打倒書靈劍仙後，冷風把地上的書頁捲起來，書頁在半空中一張張變白、變輕，落下來時已經變成了雪；鏡頭轉向天井右邊，書架後面露出一扇結了霜的門，主角說「雪是從那裡來的⋯⋯門的另一邊，是山。」（小燈精同行時會多一句「好冷⋯⋯可是門後面，好像有很多燈。」）',
@@ -2404,7 +2413,7 @@ function talkSteps(id){
       {c:'talk',who:'mentor',t:'我是地上那個人一直想教你、卻總說「還太早」的那些東西。'},
       {c:'talk',who:'mentor',t:'燈火不只會照亮路。它可以燒，可以冷，也可以暖。選一種，我教你。'},
       {c:'choice',key:'mentorFac',opts:SKILL_FACTIONS.map(f=>({v:f.id,t:`${f.name}：${f.desc}`,d:f.tip.split('：')[0],then:[
-        {c:'fn',fn:()=>{skill.fac=f.id;skill.owned=[];skill.eq=null;skill.lv={};skill.picks=Math.max(skill.picks,1+(F.drillDone?1:0)+(F.iceDone?1:0));saveGame();updateSkillUI();return null;}},
+        {c:'fn',fn:()=>{if(skill.base==null)skill.base=BOSS_FLAGS.filter(k=>F[k]).length;skill.fac=f.id;skill.owned=[];skill.eq=null;skill.lv={};skill.picks=Math.max(skill.picks,1+(F.drillDone?1:0)+(F.iceDone?1:0));saveGame();updateSkillUI();return null;}},
         {c:'talk',who:'mentor',t:`${f.name}啊⋯⋯很像你。先學一招吧，學會了就去用用看。`},
         {c:'talk',who:'mentor',t:'以後想換一招用、想重新來過，都回來找我。'},
         {c:'cap',t:'你提著的燈閃了一下，好像又想起了什麼。'}]}))}
@@ -2955,7 +2964,7 @@ function loadRoom(id){
   props=level.props.map(q=>({...q}));initThaw();
   npcs=(level.npcs||[]).filter(n=>story.npc[n.id]!=='seal'&&!(n.id==='fox'&&F.companion)).map(n=>({...n,x:n.c*TILE+2,y:n.g*TILE-34,w:28,h:34,a:1,fade:false,face:-1}));actors={};
   TT=THEMES[id]||THEMES.R3;buildTerrain();setMusic(roomTrack(id));
-  spawnEnemies();parts.length=0;coins=[];pshots=[];skCast=0;skFx=[];skWalls=[];skZones=[];skDelay=[];scarf=[];shots=[];boss=null;ib=null;tb=null;kb=null;sb=null;yb=null;bossSealed=false;document.body.classList.remove('boss');
+  spawnEnemies();parts.length=0;if(coins.length&&mode==='play'){wallet+=coins.length;updateCoin();}coins=[];pshots=[];skCast=0;skFx=[];skWalls=[];skZones=[];skDelay=[];scarf=[];shots=[];boss=null;ib=null;tb=null;kb=null;sb=null;yb=null;bossSealed=false;document.body.classList.remove('boss');
   refreshPortals();mirror=null;hist=[];gb=null;grav=1;SH=[];hook=null;dr=null;document.body.classList.remove('nearHook');bubbles=[];document.body.classList.toggle('uw',level.waterTop!=null);lastOxyF=-1;
   waters=(level.water||[]).map(w=>({x0:w.a*TILE,x1:w.b*TILE,y:w.g*TILE+8,ink:!!w.ink}));initBoats();p.wet=false;kindleT=0;kindleTarget=null;nearSconceOn=false;document.body.classList.remove('nearSconce');
   sconces=id==='B1'?SCONCES.map(q=>({...q,lit:!!F.bossDone,smoke:0})):[];ghosts.length=0;snapCam=true;
@@ -2994,7 +3003,7 @@ function placePlayer(pos){oxyMax=F&&F.amulet?TUNE.oxyAmulet:TUNE.oxy;oxy=oxyMax;
 }
 function resetState(){
   $('finish').classList.remove('show');comp=null;jointCd=0;jointFx=null;
-  story={choices:{},npc:{},accept:0,seal:0};seenTalkHint=false;wallet=0;wick=0;wickBought=0;shade=false;oil=0;quests={};skill=normSkill();skCd=0;skCast=0;pshots=[];skSel=null;shieldT=0;skZones=[];skDelay=[];skBossSeen=-1;updateSkillUI();maxHp=TUNE.maxHp;lostMsg=0;updateCoin();updateOilUI();F={dummy:false,crystal:false};lit.clear();shards.clear();visited.clear();ability=null;trig={};hint=null;updateAbilityUI();
+  story={choices:{},npc:{},accept:0,seal:0};seenTalkHint=false;wallet=0;wick=0;wickBought=0;shade=false;oil=0;quests={};skill=normSkill();skCd=0;skCast=0;pshots=[];skSel=null;shieldT=0;skZones=[];skDelay=[];skBossSeen=-1;updateSkillUI();maxHp=TUNE.maxHp;lostMsg=0;coins=[];updateCoin();updateOilUI();F={dummy:false,crystal:false};lit.clear();shards.clear();visited.clear();ability=null;trig={};hint=null;updateAbilityUI();
   tut=99;showTut();dying=0;fadeIn=0;trans=null;transFade=0;finished=false;cold=0;coldHurtT=0;
 }
 const SAVE_BASE='tunnel.save.v1';let slot=1;
@@ -3068,7 +3077,7 @@ function startGame(){
 // 捷徑（待辦 E）：跳到第四章以後時，直接給焰火派與該章應有的招式（第三章選派系、第四章起每章多學一招），方便測試
 function testSkill(n){
   if(n<4)return;const own=['fireball','flameslash','blast'].slice(0,Math.min(3,n-3));
-  skill=normSkill({fac:'fire',owned:own,eq:'fireball',picks:0});trig.mentorFac=true;trig.skTut_fireball=true;updateSkillUI();
+  skill=normSkill({fac:'fire',owned:own,eq:'fireball',picks:0,base:0});trig.mentorFac=true;trig.skTut_fireball=true;updateSkillUI();
 }
 function startCh8Test(){
   slot=3;resetState();
@@ -3190,7 +3199,7 @@ function startSample(){
   setMode('play');pendingName=null;onEnterRoom();
 }
 function respawn(){shieldT=0;cold=0;coldHurtT=0;quietInv=0;loadRoom(checkpoint.room);pendingName=null;placePlayer(checkpoint);hp=maxHp;updateHP();fadeIn=.6;invuln=1.5;fallT=.5;fallLock=true;if(lostMsg>0){toast(`倒下時失去了 ${lostMsg} 光屑`);lostMsg=0;}}
-function die(){hp=0;updateHP();dying=1.2;sfx('die');lostMsg=Math.floor(wallet/2);wallet-=lostMsg;updateCoin();burst(p.x+p.w/2,p.y+p.h/2,24,'#e9e3f6');}
+function die(){hp=0;updateHP();dying=1.2;coins=[];sfx('die');lostMsg=Math.floor(wallet/2);wallet-=lostMsg;updateCoin();burst(p.x+p.w/2,p.y+p.h/2,24,'#e9e3f6');}
 function grant(ab){
   ability=ab;updateAbilityUI();
   burst(p.x+p.w/2,p.y+p.h/2,30,ab==='dash'?'#9ff0e2':'#d6c4ff');shake=4;
@@ -4223,12 +4232,13 @@ function update(dt){
     const c=coins[i];c.t+=dt;
     const dx=(p.x+p.w/2)-c.x,dy=(p.y+p.h/2)-c.y,d=Math.hypot(dx,dy)||1;
     const fl=!!(level&&level.flight),ma=fl?2800:1400;
-    if(c.t>(fl?.15:.35)&&d<(fl?420:120)){c.mag=true;c.vx+=dx/d*ma*dt;c.vy+=dy/d*ma*dt;c.vx*=.94;c.vy*=.94;}
-    else if(!c.mag){c.vy+=900*dt;c.vx*=.99;}
+    // 待辦 Q1（2026-11-28.1）：怪物掉的光屑不管離多遠都會飛向主角，飛越久越快，飛的時候穿過牆和地形
+    if(c.t>(fl?.15:.35)){c.mag=true;const k=ma*(1+Math.max(0,c.t-.35)*1.6)*(d>120?1.5:1);c.vx+=dx/d*k*dt;c.vy+=dy/d*k*dt;c.vx*=.94;c.vy*=.94;}
+    else{c.vy+=900*dt;c.vx*=.99;}
     c.x+=c.vx*dt;c.y+=c.vy*dt;
     if(!c.mag&&c.vy>0&&solid(Math.floor(c.x/TILE),Math.floor((c.y+3)/TILE))){c.y=Math.floor((c.y+3)/TILE)*TILE-3;c.vy*=-.3;c.vx*=.6;}
     if(d<16){wallet++;updateCoin();sfx('coin');coins.splice(i,1);continue;}
-    if(c.y>WORLD_H+50||c.t>25)coins.splice(i,1);
+    if(!c.mag&&c.y>WORLD_H+50)coins.splice(i,1);
   }
   // 燈籠
   for(const L of lanterns){
@@ -9243,7 +9253,8 @@ function startCh9Boss(){
 const BOSS_FLAGS=['bossDone','mirrorDone','guideDone','drillDone','iceDone','towerDone','festDone','inkDone','snowDone'];
 const evoStage=id=>(skill.evo&&skill.evo[id])||0;
 const skName=t=>{const st=evoStage(t.id);return st?SKILL_EVO[t.id][st-1][0]:t.name;};
-function skChances(){return BOSS_FLAGS.filter(k=>F&&F[k]).length+(F&&F.skillTest?3:0)-(skill.used||0);}
+// 待辦 R1（2026-11-28.1）：燈火機會只算「學會燈火技藝（第三章選派系）之後」實際打倒的 Boss；skill.base＝選派系那一刻已經打倒的 Boss 數
+function skChances(){const n=BOSS_FLAGS.filter(k=>F&&F[k]).length,b=skill.base==null?0:skill.base;return Math.max(0,n-b)+(F&&F.skillTest?3:0)-(skill.used||0);}
 const skPM=id=>1+.2*skillLv(id),skSM=id=>1+.1*skillLv(id);
 const skDmg=t=>t.dmg?Math.max(1,Math.round(t.dmg*skPM(t.id))):0;
 const skillType=id=>{for(const f of SKILL_FACTIONS)for(const t of f.types)if(t.id===id)return t;return null;};
@@ -9313,9 +9324,9 @@ function renderSkills(){
     if(!own)acts='<button disabled>要先學會這一招</button>';else if(lv>=SKILL_LV_MAX)acts='<button disabled>已經升到最高級</button>';
     else{const c=SKILL_LV_COST[lv];acts=`<button class="primary" data-lv="${t.id}" ${wallet<c?'disabled':''}>升級（✦ ${c}）</button>`;}}
   else if(fac&&skSel&&skSel.startsWith('evo:')){const t=skillType(skSel.slice(4)),own=skill.owned.includes(t.id),st=evoStage(t.id),E=SKILL_EVO[t.id];
-    d=`<b>${esc(t.name)}・進化</b><p>每次進化用 1 次燈火機會（每打倒一個 Boss 得到 1 次，目前 ${ch} 次）。</p>`+E.map((e,i)=>`<p>${i<st?'✔':'○'} <b>${esc(e[0])}</b>：${esc(e[1])}</p>`).join('');
+    d=`<b>${esc(t.name)}・進化</b><p>每次進化用 1 次燈火機會（學會燈火技藝之後，每打倒一個 Boss 得到 1 次，目前 ${ch} 次）。</p>`+E.map((e,i)=>`<p>${i<st?'✔':'○'} <b>${esc(e[0])}</b>：${esc(e[1])}</p>`).join('');
     if(!own)acts='<button disabled>要先學會這一招</button>';else if(st>=2)acts='<button disabled>已經進化到最後一段</button>';
-    else acts=`<button class="primary" data-evo="${t.id}" ${ch>0?'':'disabled'}>進化成「${esc(E[st][0])}」（燈火機會 ×1）</button>`;}
+    else acts=ch>0?`<button class="primary" data-evo="${t.id}">進化成「${esc(E[st][0])}」（燈火機會 ×1）</button>`:'<button disabled>打倒 Boss 可獲得燈火機會</button>';}
   else if(fac&&skSel&&skillType(skSel)){const t=skillType(skSel),own=skill.owned.includes(t.id),eq=skill.eq===t.id,cost=skill.eq?SKILL_SWAP_COST:0;
     const st=evoStage(t.id);d=`<b>${esc(own?skName(t):t.name)}</b>${t.ready?'':'<small>（招式效果製作中）</small>'}<p>${esc(t.desc)}</p>${st?`<p>進化：${esc(SKILL_EVO[t.id][st-1][1])}</p>`:''}<small>冷卻 ${skillCdOf(t)} 秒${t.dmg?'・威力 '+skDmg(t):''}${skillLv(t.id)?'・強化 '+skillLv(t.id)+' 級':''}</small>`;
     if(!own){if(skill.picks>0)acts=`<button class="primary" data-learn="${t.id}">學會這一招（剩 ${skill.picks} 次）</button>`;
@@ -9344,7 +9355,7 @@ function renderSkills(){
     if(a==='job'){if(skChances()<=0){toast('轉職要用 1 次燈火機會（打倒 Boss 得到）');return;}
       if(skSel!=='confirm:job'){skSel='confirm:job';toast('再按一次「轉職」：用 1 次燈火機會換派系。強化花的光屑全部退回、進化用掉的機會也會退回，已學會的招數變成重新選擇的次數');return;}
       const sp=skillSpent(),ev=Object.values(skill.evo||{}).reduce((a,b)=>a+b,0);wallet+=sp;updateCoin();
-      skill=normSkill({picks:skill.picks+skill.owned.length,used:(skill.used||0)-ev+1,jobPending:true});skSel=null;saveGame();updateSkillUI();toast('轉職：請在上方重新選擇派系');}
+      skill=normSkill({picks:skill.picks+skill.owned.length,used:(skill.used||0)-ev+1,jobPending:true,base:skill.base});skSel=null;saveGame();updateSkillUI();toast('轉職：請在上方重新選擇派系');}
   });
 }
 // 施放技能
@@ -9355,6 +9366,8 @@ $('closeSkill').onclick=closeSkillOv;
 $('skillBtn').onclick=()=>{if(mode==='play'&&!cs&&!paused)openSkill();};
 function grantChapterPick(){if(!skill.fac)return;skill.picks++;updateSkillUI();saveGame();pendingMsg='燈火裡多了一點力量：可以學會一招新技能了！按右上角的技能按鈕看看';}
 function skillCatchUp(){
+  // 待辦 R1：舊存檔沒有 skill.base → 只把第三章師父之前的 Boss（熄燈者、映照者）扣掉；已經進化過的招式不退回
+  if(skill.fac&&skill.base==null)skill.base=(F.bossDone?1:0)+(F.mirrorDone?1:0);
   if(skill.fac){const want=1+(F.drillDone?1:0)+(F.iceDone?1:0),have=skill.owned.length+skill.picks;if(have<want){skill.picks+=want-have;pendingMsg='可以學會新的技能了！按右上角的技能按鈕看看';}}
   else if(F.guideDone||visited.has('T4'))pendingMsg='師父的工坊裡，好像有人在等你教你燈火的技藝';
   updateSkillUI();}
